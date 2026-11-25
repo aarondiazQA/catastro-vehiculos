@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Catastro de Vehículos del Condominio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen">
+
+  <div class="max-w-md mx-auto min-h-screen bg-white shadow-lg flex flex-col">
+    <!-- Encabezado -->
+    <header class="bg-slate-900 text-white px-5 py-4">
+      <h1 class="text-lg font-bold tracking-tight">🚗 Catastro de Vehículos del Condominio</h1>
+      <p class="text-xs text-slate-300 mt-0.5">Registro de patentes y controles remotos de portón</p>
+    </header>
+
+    <!-- Navegación por pestañas -->
+    <nav class="grid grid-cols-2 border-b border-slate-200 bg-slate-50 text-sm font-semibold">
+      <button type="button" id="tab-registro" onclick="cambiarTab('registro')"
+        class="py-3 text-blue-600 border-b-2 border-blue-600 bg-white">
+        Registrar Auto(s)
+      </button>
+      <button type="button" id="tab-consulta" onclick="cambiarTab('consulta')"
+        class="py-3 text-slate-500 hover:text-slate-700">
+        Exportar Listado
+      </button>
+    </nav>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="p-5 flex-1">
+
+      <!-- VISTA 1: FORMULARIO VECINOS -->
+      <section id="vista-registro">
+        <div class="bg-blue-50 border border-blue-200 text-blue-900 text-xs rounded-lg p-3 mb-4">
+          Ingresa tus datos y patentes del condominio (hasta 5 vehículos por registro).
+        </div>
+
+        <form id="form-vehiculo" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">NOMBRE * </label>
+            <input type="text" id="nombre" required maxlength="30" placeholder="Ej: Juan o Juan Pérez"
+              oninput="this.value = this.value.replace(/[0-9]/g, '')"
+              class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+
+          <div class="grid grid-cols-3 gap-2.5">
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">N° BLOCK</label>
+              <input type="text" id="block" inputmode="numeric" maxlength="4" placeholder="Ej: 2"
+                oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">N° DEPTO *</label>
+              <input type="text" id="departamento" required inputmode="numeric" maxlength="2" placeholder="Ej: 12"
+                oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">CONDICIÓN *</label>
+              <select id="tipo_residente" required
+                class="w-full rounded-lg border border-slate-300 px-2 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="Propietario">Propietario</option>
+                <option value="Arrendatario">Arrendatario</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Contenedor de patentes (máximo 5) -->
+          <div class="space-y-2.5">
+            <div class="flex items-center justify-between">
+              <label class="block text-xs font-semibold uppercase text-slate-600">PATENTE(S) DEL VEHÍCULO * (Máx. 5)</label>
+              <button type="button" id="btn-agregar-patente" onclick="agregarFilaPatente()"
+                class="text-xs font-semibold text-blue-600 hover:text-blue-800">
+                + Agregar otro vehículo
+              </button>
+            </div>
+
+            <div id="contenedor-patentes" class="space-y-2">
+              <div class="flex gap-2 fila-patente">
+                <input type="text" required maxlength="7" placeholder="EJ: ABCD12"
+                  oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '')"
+                  class="input-patente flex-1 rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+            </div>
+            <p id="aviso-max-patentes" class="hidden text-xs text-amber-700 font-medium">
+              Has alcanzado el límite de 5 vehículos por registro.
+            </p>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">N° CONTROLES DEL PORTÓN * (Máx. 10)</label>
+            <input type="number" id="controles" min="0" max="10" value="1" required
+              oninput="if (this.value !== '' && Number(this.value) > 10) this.value = 10;"
+              class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+
+          <button type="submit" id="btn-guardar"
+            class="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-semibold py-3 rounded-lg shadow transition text-sm">
+            Guardar registro
+          </button>
+        </form>
+
+        <div id="mensaje-estado" class="hidden mt-4 p-3 rounded-lg text-sm font-medium"></div>
+      </section>
+
+      <!-- VISTA 2: CONSULTA, BUSCADOR Y EXPORTACIÓN (SIN PIN) -->
+      <section id="vista-consulta" style="display: none;">
+        <div id="panel-admin" class="space-y-4">
+          <div class="flex items-center justify-between">
+            <span id="contador-registros" class="text-xs font-semibold text-slate-600">Cargando...</span>
+            <button type="button" onclick="cargarVehiculos()" class="text-xs text-blue-600 font-semibold hover:underline">
+              ↻ Actualizar
+            </button>
+          </div>
+
+          <!-- Buscador -->
+          <div>
+            <input type="text" id="buscar" oninput="filtrarLista()" placeholder="🔍 Buscar patente, block, depto o nombre..."
+              class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+
+          <!-- Botones de exportación -->
+          <div class="grid grid-cols-2 gap-2.5">
+            <button type="button" onclick="exportarCSV()"
+              class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2.5 px-3 rounded-lg shadow-sm flex items-center justify-center gap-1.5">
+              📊 Bajar Excel (CSV)
+            </button>
+            <button type="button" onclick="copiarListadoNotas()"
+              class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold py-2.5 px-3 rounded-lg shadow-sm flex items-center justify-center gap-1.5">
+              📋 Copiar para Notas
+            </button>
+          </div>
+
+          <div id="aviso-copiado" class="hidden text-xs text-center bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg py-2 font-medium">
+            ¡Listado copiado! Ya puedes pegarlo en Notas o WhatsApp.
+          </div>
+
+          <!-- Listado en pantalla -->
+          <div id="lista-vehiculos" class="space-y-2.5 max-h-[420px] overflow-y-auto pr-1"></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://dlybyenwbjyfyibkueqb.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_yUdPaq_Qk_lgjo8wtogEBQ_7oFG2jbn";
+    const MAX_VEHICULOS = 5;
+    const MAX_CONTROLES = 10;
+
+    let db = null;
+    try {
+      if (window.supabase && typeof window.supabase.createClient === "function") {
+        db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      }
+    } catch (e) {
+      console.error("Error inicializando Supabase:", e);
+    }
+
+    let todosLosVehiculos = [];
+
+    function cambiarTab(tab) {
+      const esRegistro = tab === 'registro';
+      const vistaRegistro = document.getElementById('vista-registro');
+      const vistaConsulta = document.getElementById('vista-consulta');
+
+      if (vistaRegistro) vistaRegistro.style.display = esRegistro ? 'block' : 'none';
+      if (vistaConsulta) vistaConsulta.style.display = esRegistro ? 'none' : 'block';
+
+      const tabRegistro = document.getElementById('tab-registro');
+      const tabConsulta = document.getElementById('tab-consulta');
+
+      if (tabRegistro) {
+        tabRegistro.className = esRegistro
+          ? "py-3 text-blue-600 border-b-2 border-blue-600 bg-white"
+          : "py-3 text-slate-500 hover:text-slate-700";
+      }
+
+      if (tabConsulta) {
+        tabConsulta.className = !esRegistro
+          ? "py-3 text-blue-600 border-b-2 border-blue-600 bg-white"
+          : "py-3 text-slate-500 hover:text-slate-700";
+      }
+
+      if (!esRegistro) {
+        cargarVehiculos();
+      }
+    }
+
+    function actualizarEstadoBotonPatente() {
+      const cantidad = document.querySelectorAll('.fila-patente').length;
+      const btn = document.getElementById('btn-agregar-patente');
+      const aviso = document.getElementById('aviso-max-patentes');
+
+      if (cantidad >= MAX_VEHICULOS) {
+        btn.classList.add('opacity-40', 'pointer-events-none');
+        aviso.classList.remove('hidden');
+      } else {
+        btn.classList.remove('opacity-40', 'pointer-events-none');
+        aviso.classList.add('hidden');
+      }
+    }
+
+    function agregarFilaPatente() {
+      const cantidadActual = document.querySelectorAll('.fila-patente').length;
+      if (cantidadActual >= MAX_VEHICULOS) {
+        actualizarEstadoBotonPatente();
+        return;
+      }
+
+      const contenedor = document.getElementById('contenedor-patentes');
+      const div = document.createElement('div');
+      div.className = "flex gap-2 fila-patente";
+      div.innerHTML = `
+        <input type="text" required maxlength="7" placeholder="Otra patente (ej: WXYZ99)"
+          oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '')"
+          class="input-patente flex-1 rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <button type="button" onclick="this.parentElement.remove(); actualizarEstadoBotonPatente();"
+          class="px-3 rounded-lg border border-red-200 bg-red-50 text-red-600 text-xs font-bold hover:bg-red-100"
+          title="Quitar patente">✕</button>
+      `;
+      contenedor.appendChild(div);
+      actualizarEstadoBotonPatente();
+    }
+
+    function resetearPatentes() {
+      const contenedor = document.getElementById('contenedor-patentes');
+      contenedor.innerHTML = `
+        <div class="flex gap-2 fila-patente">
+          <input type="text" required maxlength="7" placeholder="EJ: ABCD12"
+            oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '')"
+            class="input-patente flex-1 rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+      `;
+      actualizarEstadoBotonPatente();
+    }
+
+    function mostrarMensaje(texto, exito = true) {
+      const box = document.getElementById('mensaje-estado');
+      box.textContent = texto;
+      box.className = `mt-4 p-3 rounded-lg text-sm font-medium ${
+        exito ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+              : 'bg-red-50 text-red-800 border border-red-200'
+      }`;
+      box.classList.remove('hidden');
+    }
+
+    function formatoUnidad(v) {
+      const blockTxt = v.block ? `Block ${v.block} · ` : '';
+      return `${blockTxt}Depto ${v.departamento}`;
+    }
+
+    document.getElementById('form-vehiculo').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!db) {
+        mostrarMensaje("No se pudo conectar con Supabase. Revisa tu conexión a internet.", false);
+        return;
+      }
+
+      const inputsPatente = Array.from(document.querySelectorAll('.input-patente'));
+      const patentes = inputsPatente
+        .map(inp => inp.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7))
+        .filter(Boolean);
+
+      if (patentes.length === 0) {
+        mostrarMensaje("Debes ingresar al menos una patente.", false);
+        return;
+      }
+
+      if (patentes.length > MAX_VEHICULOS) {
+        mostrarMensaje(`Solo puedes registrar hasta ${MAX_VEHICULOS} vehículos por envío.`, false);
+        return;
+      }
+
+      const nombre = document.getElementById('nombre').value.replace(/[0-9]/g, '').trim().slice(0, 30);
+      const block = document.getElementById('block').value.trim().replace(/[^0-9]/g, '').slice(0, 4);
+      const departamento = document.getElementById('departamento').value.trim().replace(/[^0-9]/g, '').slice(0, 2);
+      const tipo_residente = document.getElementById('tipo_residente').value;
+      const controlesRaw = parseInt(document.getElementById('controles').value, 10) || 0;
+      const controles = Math.max(0, Math.min(MAX_CONTROLES, controlesRaw));
+
+      if (!nombre) {
+        mostrarMensaje("El campo nombre es obligatorio, no admite números y tiene un máximo de 30 caracteres.", false);
+        return;
+      }
+
+      if (!departamento) {
+        mostrarMensaje("El N° de depto debe contener solo números (máximo 2 dígitos).", false);
+        return;
+      }
+
+      const btn = document.getElementById('btn-guardar');
+      btn.disabled = true;
+      btn.textContent = "Guardando...";
+
+      const filas = patentes.map((patente, idx) => ({
+        nombre,
+        block: block || null,
+        departamento,
+        tipo_residente,
+        patente,
+        controles: idx === 0 ? controles : 0
+      }));
+
+      const { error } = await db.from('vehiculos').insert(filas);
+
+      btn.disabled = false;
+      btn.textContent = "Guardar registro";
+
+      if (error) {
+        mostrarMensaje("Error al guardar: " + error.message, false);
+        return;
+      }
+
+      mostrarMensaje(`✅ Guardado correctamente: ${patentes.join(', ')}.`);
+      document.getElementById('form-vehiculo').reset();
+      document.getElementById('controles').value = 1;
+      resetearPatentes();
+    });
+
+    async function cargarVehiculos() {
+      const contador = document.getElementById('contador-registros');
+      const lista = document.getElementById('lista-vehiculos');
+
+      if (!db) {
+        if (contador) contador.textContent = "Sin conexión a la base de datos";
+        if (lista) {
+          lista.innerHTML = `<div class="text-center py-6 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-xs font-medium">
+            No se pudo inicializar la conexión con Supabase. Verifica tu conexión a internet.
+          </div>`;
+        }
+        return;
+      }
+
+      if (contador) contador.textContent = "Cargando vehículos...";
+
+      const { data, error } = await db
+        .from('vehiculos')
+        .select('*')
+        .order('block', { ascending: true })
+        .order('departamento', { ascending: true });
+
+      if (error) {
+        if (contador) contador.textContent = "Error al cargar";
+        if (lista) {
+          lista.innerHTML = `<div class="text-center py-6 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs font-medium">
+            Error al cargar datos: ${error.message}
+          </div>`;
+        }
+        return;
+      }
+
+      todosLosVehiculos = data || [];
+      filtrarLista();
+    }
+
+    function filtrarLista() {
+      const q = (document.getElementById('buscar').value || '').trim().toUpperCase();
+      const filtrados = todosLosVehiculos.filter(v =>
+        (v.patente || '').toUpperCase().includes(q) ||
+        (v.block || '').toUpperCase().includes(q) ||
+        (v.departamento || '').toUpperCase().includes(q) ||
+        (v.nombre || '').toUpperCase().includes(q)
+      );
+
+      document.getElementById('contador-registros').textContent =
+        `Mostrando ${filtrados.length} de ${todosLosVehiculos.length} vehículos`;
+
+      const contenedor = document.getElementById('lista-vehiculos');
+      if (filtrados.length === 0) {
+        contenedor.innerHTML = `
+          <div class="text-center py-6 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs font-semibold">
+            ❌ No hay coincidencias registradas para "${q || 'el filtro'}".
+          </div>`;
+        return;
+      }
+
+      contenedor.innerHTML = filtrados.map(v => `
+        <div class="border border-slate-200 rounded-lg p-3 bg-slate-50 flex items-center justify-between gap-2">
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-mono font-bold text-sm bg-slate-900 text-white px-2 py-0.5 rounded">${v.patente}</span>
+              <span class="text-xs font-bold text-blue-700">${formatoUnidad(v)}</span>
+            </div>
+            <p class="text-xs text-slate-700 mt-1 font-medium">${v.nombre} <span class="text-slate-400">(${v.tipo_residente})</span></p>
+          </div>
+          <div class="text-right shrink-0">
+            <span class="inline-block text-xs font-semibold bg-amber-100 text-amber-900 px-2 py-1 rounded">
+              🎛️ ${v.controles ?? 0} ${v.controles === 1 ? 'control' : 'controles'}
+            </span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function exportarCSV() {
+      if (todosLosVehiculos.length === 0) {
+        alert("No hay registros para exportar.");
+        return;
+      }
+
+      const encabezados = ["Patente", "Block", "Departamento", "Nombre", "Condicion", "Controles_Porton"];
+      const filas = todosLosVehiculos.map(v => [
+        `"${(v.patente || '').replace(/"/g, '""')}"`,
+        `"${(v.block || '').replace(/"/g, '""')}"`,
+        `"${(v.departamento || '').replace(/"/g, '""')}"`,
+        `"${(v.nombre || '').replace(/"/g, '""')}"`,
+        `"${(v.tipo_residente || '').replace(/"/g, '""')}"`,
+        v.controles ?? 0
+      ].join(";"));
+
+      const contenidoCSV = "\uFEFF" + [encabezados.join(";"), ...filas].join("\n");
+      const blob = new Blob([contenidoCSV], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `catastro_vehiculos_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+
+    async function copiarListadoNotas() {
+      if (todosLosVehiculos.length === 0) {
+        alert("No hay registros para copiar.");
+        return;
+      }
+
+      const lineas = todosLosVehiculos.map(v =>
+        `• ${v.patente} | ${formatoUnidad(v)} | ${v.nombre} (${v.tipo_residente}) — ${v.controles ?? 0} control(es)`
+      );
+      const textoFinal = `CATASTRO VEHÍCULOS CONDOMINIO (${todosLosVehiculos.length} autos)\n\n` + lineas.join("\n");
+
+      try {
+        await navigator.clipboard.writeText(textoFinal);
+      } catch {
+        const temp = document.createElement("textarea");
+        temp.value = textoFinal;
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand("copy");
+        document.body.removeChild(temp);
+      }
+
+      const aviso = document.getElementById('aviso-copiado');
+      aviso.classList.remove('hidden');
+      setTimeout(() => aviso.classList.add('hidden'), 3000);
+    }
+  </script>
+</body>
+</html>
