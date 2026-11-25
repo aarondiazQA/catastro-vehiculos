@@ -39,7 +39,7 @@
 
         <form id="form-vehiculo" class="space-y-4">
           <div>
-            <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">NOMBRE * (SIN NÚMEROS, MÁX. 30)</label>
+            <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">NOMBRE *</label>
             <input type="text" id="nombre" required maxlength="30" placeholder="Ej: Juan o Juan Pérez"
               oninput="this.value = this.value.replace(/[0-9]/g, '')"
               class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
@@ -47,7 +47,7 @@
 
           <div class="grid grid-cols-3 gap-2.5">
             <div>
-              <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">N° BLOCK</label>
+              <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">N° BLOCK *</label>
               <input type="text" id="block" inputmode="numeric" maxlength="4" placeholder="Ej: 2"
                 oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                 class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
@@ -61,7 +61,7 @@
             </div>
 
             <div>
-              <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">CONDICIÓN *</label>
+              <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">CALIDAD DE *</label>
               <select id="tipo_residente" required
                 class="w-full rounded-lg border border-slate-300 px-2 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="Propietario">Propietario</option>
